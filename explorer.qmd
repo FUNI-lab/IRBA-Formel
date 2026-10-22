@@ -1,0 +1,55 @@
+---
+title: "IRBA 3D-Explorer"
+format: 
+  html:
+    theme: darkly
+    embed-resources: true
+---
+
+Interaktive Analyse der A-IRBA Risikogewichtsfunktion (Corporate). Laufzeit $M$ ist auf 2,5 Jahre fixiert. Das Diagramm ist frei dreh- und zoombar.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# IRBA Formel (Corporate, Art. 153 CRR, ohne Size-Adjustment)
+calc_irba_rw <- function(pd, lgd, m = 2.5) {
+  # R (Korrelation)
+  r <- 0.12 * (1 - exp(-50 * pd)) / (1 - exp(-50)) + 
+       0.24 * (1 - (1 - exp(-50 * pd)) / (1 - exp(-50)))
+  
+  # b (Laufzeitanpassung)
+  b <- (0.11852 - 0.05478 * log(pd))^2
+  
+  # K (Kapitalanforderung)
+  k <- (lgd * stats::pnorm((stats::qnorm(pd) + sqrt(r) * stats::qnorm(0.999)) / sqrt(1 - r)) - lgd * pd) * 
+       (1 + (m - 2.5) * b) / (1 - 1.5 * b)
+  
+  # RW (Risikogewicht als Faktor)
+  rw <- k * 12.5
+  return(rw)
+}
+
+# Grid für X und Y erzeugen (PD: 0.1% bis 10%, LGD: 10% bis 100%)
+pd_vec <- seq(0.001, 0.10, length.out = 50)
+lgd_vec <- seq(0.10, 1.00, length.out = 50)
+
+# Z-Matrix (RW) berechnen
+rw_mat <- outer(pd_vec, lgd_vec, Vectorize(calc_irba_rw))
+
+# 3D Plotly Surface generieren
+plotly::plot_ly(x = ~lgd_vec, y = ~pd_vec, z = ~rw_mat) |>
+  plotly::add_surface(
+    colorscale = "Viridis"
+  ) |>
+  plotly::layout(
+    scene = list(
+      xaxis = list(title = "LGD", tickformat = ".0%"),
+      yaxis = list(title = "PD", tickformat = ".1%"),
+      zaxis = list(title = "Risk Weight", tickformat = ".0%")
+    ),
+    paper_bgcolor = 'rgba(0,0,0,0)',
+    plot_bgcolor = 'rgba(0,0,0,0)'
+  )
+```
