@@ -7,6 +7,7 @@ format:
     toc-depth: 4
     toc-location: left
     toc-title: "Inhalt"
+    embed-resources: true
 editor: visual
 ---
 
