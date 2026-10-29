@@ -1,0 +1,160 @@
+---
+title: "Projektskizze"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    toc-title: "Inhalt"
+editor: visual
+---
+
+# Die IRBA-Risikogewichtsformel- Grundlagen, Einflussfaktoren und Vergleich mit dem KSA
+
+## 1. Ausgangslage und Zielsetzung
+
+Kreditinstitute müssen ihre Kreditrisiken mit regulatorischen Eigenmitteln unterlegen. Die Höhe der Eigenmittelanforderung hängt wesentlich von den risikogewichteten Positionsbeträgen ab. Für die Ermittlung des Kreditrisikos sieht das europäische Aufsichtsrecht insbesondere den Kreditrisikostandardansatz (KSA) und den auf internen Ratings basierenden Ansatz (IRBA) vor. Beide Verfahren verfolgen das Ziel, Kreditrisiken regulatorisch zu erfassen und eine angemessene Eigenmittelunterlegung sicherzustellen. Sie unterscheiden sich jedoch hinsichtlich ihrer Methodik und der Verwendung interner Risikoparameter.
+
+Im KSA werden Risikogewichte grundsätzlich anhand regulatorisch vorgegebener Kategorien und Kriterien bestimmt. Dazu zählen beispielsweise die Forderungsklasse, die Art des Schuldners und gegebenenfalls externe Bonitätsbeurteilungen. Im IRBA können Kreditinstitute unter Erfüllung der aufsichtsrechtlichen Voraussetzungen eigene Schätzungen bestimmter Risikoparameter verwenden. Dazu gehören insbesondere die Ausfallwahrscheinlichkeit (Probability of Default, PD), die Verlustquote bei Ausfall (Loss Given Default, LGD) und die Restlaufzeit beziehungsweise regulatorisch maßgebliche Laufzeit (Maturity, M).
+
+Ziel der Arbeit ist es, die Berechnung der Risikogewichte in beiden Ansätzen gegenüberzustellen und zu untersuchen, wie sich Veränderungen der Risikoparameter PD, LGD und M auf die Risikogewichte und die daraus resultierenden risikogewichteten Aktiva im IRBA auswirken. Dabei soll herausgearbeitet werden, welche Unterschiede sich für die regulatorische Eigenmittelunterlegung ergeben und welche Bedeutung diese für die Risikosteuerung eines Kreditinstituts haben.
+
+## 2. Forschungsfrage
+
+Die zentrale Forschungsfrage lautet:
+
+**Wie unterscheiden sich die Ermittlung der Risikogewichte im KSA und im IRBA, und wie sensitiv reagieren die IRBA-Risikogewichte auf Veränderungen der PD, LGD und Restlaufzeit?**
+
+Zur Beantwortung werden folgende Teilfragen betrachtet:
+
+- Nach welchen reglatorischen Kriterien werden Risikogewichte im KSA und IRBA bestimmt?
+
+<!-- -->
+
+- Welche Funktion haben PD, LGD und Restlaufzeit bei der Berechnung der IRBA-Risikogewichte?
+
+- Wie verändern sich Risikogewichte und RWA, wenn einzelne Risikoparameter bei ansonsten gleichbleibenden Bedingungen variiert werden?
+
+Welche Auswirkungen können diese Veränderungen auf die Eigenmittelanforderungen eines Kreditinstituts haben?
+
+## 3. Regulatorische und theoretische Grundlagen
+
+Die Untersuchung basiert auf den europäischen Eigenmittelvorschriften für Kreditinstitute, insbesondere der Capital Requirements Regulation (CRR). Für die Arbeit sind vor allem die Vorschriften zum Kreditrisikostandardansatz und zum IRB-Ansatz relevant.
+
+Der **KSA** ordnet Forderungen anhand regulatorischer Vorgaben bestimmten Risikogewichten zu. Die konkrete Höhe des Risikogewichts hängt unter anderem von der jeweiligen Forderungsklasse und den hierfür geltenden Kriterien ab. Dadurch ist der Ansatz vergleichsweise standardisiert und weniger unmittelbar von institutseigenen Risikoschätzungen abhängig.
+
+Der **IRBA** basiert dagegen auf einem modellgestützten Verfahren. Die regulatorische Kapitalanforderung wird unter Verwendung vorgeschriebener Funktionen und relevanter Risikoparameter ermittelt. Die Verwendung interner Schätzungen ist an aufsichtsrechtliche Anforderungen und eine entsprechende Genehmigung gebunden.
+
+Für die Untersuchung werden drei zentrale Risikoparameter betrachtet:
+
+- **PD (Probability of Default):** Wahrscheinlichkeit, dass ein Schuldner innerhalb des nächsten Jahres ausfällt.
+
+- **LGD (Loss given Default):** Verlustquote; prozentualer Anteil einer Forderung, den eine Bank bei einem Kreditausfall voraussichtlich verliert
+
+- **M (Maturity:** Restlaufzeit der Forderung, die im IRBA je nach Forderungsklasse und Regelung auf die Kapitalanforderung haben kann
+
+## Berechnungslogik und Sensitivität im IRBA
+
+Die Risikogewichte im IRBA ergeben sich nicht allein aus einem einzelnen Risikoparameter, sondern aus dem Zusammenspiel mehrerer Größen innerhalb einer regulatorisch vorgegebenen Risikogewichtungsfunktion.
+
+$$
+RW = LGD *\left[ \Phi\left(\frac{\Phi^{-1}(PD) + \sqrt{R} * \Phi^{-1}(0,99)}{\sqrt{1-R}}\right) - PD\right] * \frac{1 + (M-2,5)*b}{1 - 1,5*b}*12,5
+$$
+
+Dabei bezeichnet
+
+- $\Phi$ die Verteilungsfunktion der Standardnormalverteilung
+
+- $\Phi^{-1}$ deren inverse Funktion (Quantilfunktion)
+
+- $M$ die Restlaufzeit
+
+- $R$ den Korrelationskoeffizienten
+
+- $b$ den Laufzeitanpassungsfaktor
+
+Die Größen $R$ und $b$ werden wie folgt dargestellt
+
+$$
+R = 0,12 * \frac{1- e^{-50*PD}}{1- e^{-50}}+ 0,24 * \left( 1-\frac{1- e^{-50*PD}}{1- e^{-50}}\right)
+$$
+
+$$b = [0,11852 - 0,05478 * \ln(PD)]^2$$ \### 3D-Modell der Risikogewichtsfunktion
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# IRBA Formel (Corporate, Art. 153 CRR, ohne Size-Adjustment)
+calc_irba_rw <- function(pd, lgd, m = 2.5) {
+  # R (Korrelation)
+  r <- 0.12 * (1 - exp(-50 * pd)) / (1 - exp(-50)) + 
+       0.24 * (1 - (1 - exp(-50 * pd)) / (1 - exp(-50)))
+  
+  # b (Laufzeitanpassung)
+  b <- (0.11852 - 0.05478 * log(pd))^2
+  
+  # K (Kapitalanforderung)
+  k <- (lgd * stats::pnorm((stats::qnorm(pd) + sqrt(r) * stats::qnorm(0.999)) / sqrt(1 - r)) - lgd * pd) * 
+       (1 + (m - 2.5) * b) / (1 - 1.5 * b)
+  
+  # RW (Risikogewicht als Faktor)
+  rw <- k * 12.5
+  return(rw)
+}
+
+# Grid für X und Y erzeugen (PD: 0.1% bis 10%, LGD: 10% bis 100%)
+pd_vec <- seq(0.001, 0.10, length.out = 50)
+lgd_vec <- seq(0.10, 1.00, length.out = 50)
+
+# Z-Matrix (RW) berechnen
+rw_mat <- outer(pd_vec, lgd_vec, calc_irba_rw)
+
+# 3D Plotly Surface generieren
+plotly::plot_ly(x = ~lgd_vec, y = ~pd_vec, z = ~rw_mat) |>
+  plotly::add_surface(
+    colorscale = "Viridis"
+  ) |>
+  plotly::layout(
+    scene = list(
+      xaxis = list(title = "LGD", tickformat = ".0%"),
+      yaxis = list(title = "PD", tickformat = ".1%"),
+      zaxis = list(title = "Risk Weight", tickformat = ".0%")
+    ),
+    paper_bgcolor = 'rgba(0,0,0,0)',
+    plot_bgcolor = 'rgba(0,0,0,0)'
+  )
+```
+
+Die genaue Ausgestaltung der Formel, einschließlich der Korrelations- und Laufzeitfunktion, richtet sich nach der maßgeblichen CRR-Vorschrift und der jeweiligen Forderungsklasse. Die Darstellung dient daher zunächst der Veranschaulichung der grundlegenden Zusammenhänge.
+
+Die risikogewichteten Aktiva ergeben sich anschließend aus dem Produkt von Forderungsbetrag beziehungsweise regulatorisch maßgeblichem Exposure at Default (EAD) und Risikogewicht:
+
+Im empirisch-analytischen Teil wird die Sensitivität der Risikogewichte gegenüber ausgewählten Parametern untersucht:
+
+- Variation der PD bei konstanter LGD
+
+- Variation der LGD bei konstanter PD
+
+- kombinierte Variation von PD und LGD
+
+- Variation der Laufzeit M
+
+## 5. Methodik, Abgrenzung und erwartete Ergebnisse
+
+Die Arbeit kombiniert eine regulatorische Literaturanalyse mit einer quantitativen Szenarioanalyse. Zunächst werden die einschlägigen CRR-Regelungen ausgewertet und die Berechnungslogik beider Ansätze erläutert. Darauf aufbauend erfolgt eine beispielhafte Berechnung für eine klar abgegrenzte Forderungsklasse. Für den KSA wird das maßgebliche Risikogewicht anhand der geltenden regulatorischen Kriterien bestimmt. Für den IRBA werden ausgewählte Parameter systematisch variiert und die Auswirkungen auf Risikogewicht und RWA berechnet.
+
+Um die Vergleichbarkeit sicherzustellen, werden Forderungsklasse, Risikoposition und sonstige Rahmenbedingungen möglichst konstant gehalten. Die Analyse konzentriert sich auf die Unterschiede der Berechnungslogik und die Sensitivität der IRBA-Risikogewichte. Eine umfassende Bewertung sämtlicher Forderungsklassen oder eine empirische Untersuchung realer Bankportfolios ist nicht vorgesehen.
+
+Erwartet wird, dass die Arbeit verdeutlicht, wie stark die regulatorische Eigenmittelunterlegung von der gewählten Berechnungsmethode und den angesetzten Risikoparametern abhängen kann. Während der KSA auf standardisierten regulatorischen Risikogewichten beruht, ermöglicht der IRBA eine differenziertere Berücksichtigung von Kreditrisiken, ist jedoch stärker von den verwendeten Parametern und den geltenden Modellvorgaben geprägt. Die Ergebnisse sollen zeigen, unter welchen Bedingungen sich Veränderungen der PD, LGD und Restlaufzeit besonders deutlich auf die Kapitalanforderung auswirken.
+
+## 6. Vorläufige Gliederung
+
+1.  Einleitg und Zielsetzung
+2.  Regulatorische Grundlagen des KSA und IRBA
+3.  Berechnung der Risikogewichte und Bedeutung der Risikoparameter
+4.  Methodik und Aufbau der Szenarioanalyse
+5.  Ergebnisse des KSA-IRBA-Vergleichs und Sensitivitätsanalyse
+6.  Fazit und Ausblick
