@@ -11,7 +11,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Tailwind CSS (via CDN für Single-File-Setup) -->
+    <!-- Tailwind CSS (via CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -47,7 +47,6 @@
     </script>
 
     <style>
-        /* Custom Styles für Effekte, die Tailwind out-of-the-box schwer abdeckt */
         body {
             background-color: #0B1120;
             color: #f8fafc;
@@ -63,12 +62,11 @@
         }
 
         .glass-card:hover {
-            border-color: rgba(34, 211, 238, 0.5); /* Neon Cyan Border */
+            border-color: rgba(34, 211, 238, 0.5);
             box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
             transform: translateY(-5px);
         }
 
-        /* Sci-Fi Grid Background */
         .bg-grid {
             background-size: 40px 40px;
             background-image: 
@@ -85,7 +83,7 @@
 </head>
 <body class="antialiased relative min-h-screen flex flex-col">
 
-    <!-- Background Animations (Glowing Blobs) -->
+    <!-- Background Animations -->
     <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div class="absolute top-0 -left-4 w-72 h-72 bg-neonpurple rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
         <div class="absolute top-0 -right-4 w-72 h-72 bg-neoncyan rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -102,10 +100,15 @@
                     <span class="font-bold text-xl tracking-wider">FUNI<span class="text-neoncyan">-lab</span></span>
                 </div>
                 <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-8">
-                        <a href="projektskizze.html">Hier geht's zur Projektskizze</a>
+                    <div class="ml-10 flex items-center space-x-6">
+                        <a href="projektskizze.html" class="hover:text-white transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 text-gray-300">
+                            <i class="fa-solid fa-file-lines"></i> Projektskizze
+                        </a>
+                        <a href="presentation.html" class="text-neoncyan hover:text-white transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2">
+                            <i class="fa-solid fa-person-chalkboard"></i> Präsentation
+                        </a>
                         <a href="#about" class="hover:text-neoncyan transition-colors px-3 py-2 rounded-md text-sm font-medium">Projekt</a>
-                        <a href="#governance" class="hover:text-neoncyan transition-colors px-3 py-2 rounded-md text-sm font-medium">Data Governance</a>
+                        <a href="#governance" class="hover:text-neoncyan transition-colors px-3 py-2 rounded-md text-sm font-medium">Governance</a>
                         <a href="#tech" class="hover:text-neoncyan transition-colors px-3 py-2 rounded-md text-sm font-medium">Tech-Stack</a>
                         <a href="https://github.com/FUNI-lab/IRBA-Formel" target="_blank" class="bg-white/10 hover:bg-white/20 border border-white/20 px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2">
                             <i class="fa-brands fa-github"></i> Repository
@@ -120,7 +123,7 @@
     <main class="flex-grow z-10">
         
         <!-- Hero Section -->
-        <section id="about" class="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
+        <section id="about" class="relative pt-24 pb-16 lg:pt-32 lg:pb-20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card text-sm text-neoncyan mb-8 animate-fade-in-up">
                     <span class="relative flex h-3 w-3">
@@ -140,16 +143,65 @@
                     Projektarbeit: Implementierung und Analyse der A-IRBA Risikogewichtungsfunktionen.
                 </p>
                 
-                <div class="mt-10 flex justify-center gap-4 animate-fade-in-up delay-300">
-                    <a href="https://github.com/FUNI-lab/IRBA-Formel" target="_blank" class="px-8 py-3 rounded-lg bg-neoncyan/10 text-neoncyan border border-neoncyan/50 hover:bg-neoncyan hover:text-deepblue font-semibold transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.3)] flex items-center gap-2">
+                <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4 animate-fade-in-up delay-300">
+                    <a href="presentation.html" class="px-8 py-3 rounded-lg bg-neonpurple/20 text-white border border-neonpurple/50 hover:bg-neonpurple font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(168,85,247,0.3)] flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> Showcase starten
+                    </a>
+                    <a href="https://github.com/FUNI-lab/IRBA-Formel" target="_blank" class="px-8 py-3 rounded-lg bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:text-white font-semibold transition-all duration-300 flex items-center justify-center gap-2">
                         <i class="fa-brands fa-github"></i> Zum Repository
                     </a>
                 </div>
             </div>
         </section>
 
-        <!-- Content Grid -->
-        <section class="py-20 bg-black/20">
+        <!-- Featured Showcase Section -->
+        <section class="py-12 relative z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="glass-card rounded-2xl p-1 relative overflow-hidden group border-neoncyan/30">
+                    <!-- Subtle Glow Background in the card -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-neoncyan/10 to-neonpurple/10 opacity-30"></div>
+                    
+                    <div class="relative bg-deepblue/90 rounded-xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 backdrop-blur-md">
+                        <!-- Text Content -->
+                        <div class="flex-1">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neoncyan/20 text-xs text-neoncyan mb-4 border border-neoncyan/30">
+                                <i class="fa-solid fa-desktop"></i> Live Demo
+                            </div>
+                            <h2 class="text-3xl font-bold text-white mb-4">Interaktive A-IRBA Präsentation</h2>
+                            <p class="text-gray-400 mb-6 leading-relaxed">
+                                Erlebe die regulatorischen Grundlagen des Art. 153 CRR als interaktive Quarto Reveal.js Präsentation. Inklusive dynamischer R-Grafiken, gerendertem LaTeX und durchsuchbaren Datentabellen – direkt im Browser.
+                            </p>
+                            <a href="presentation.html" class="inline-flex px-6 py-3 rounded-lg bg-neoncyan text-deepblue hover:bg-white font-bold transition-colors shadow-[0_0_15px_rgba(34,211,238,0.4)] items-center gap-2">
+                                <i class="fa-solid fa-up-right-from-square"></i> Präsentation öffnen
+                            </a>
+                        </div>
+                        
+                        <!-- Visual Mockup (Clickable) -->
+                        <div class="flex-1 w-full relative">
+                            <a href="presentation.html" class="block group/mockup">
+                                <div class="aspect-video bg-black/60 border border-white/10 rounded-lg overflow-hidden shadow-2xl relative transition-all duration-500 group-hover/mockup:border-neoncyan/50 group-hover/mockup:shadow-[0_0_30px_rgba(34,211,238,0.15)] group-hover/mockup:-translate-y-2">
+                                    <!-- Browser Header Mockup -->
+                                    <div class="absolute top-0 inset-x-0 h-6 bg-white/5 border-b border-white/10 flex items-center px-3 gap-1.5">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                                        <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                                        <div class="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+                                    </div>
+                                    <!-- Mockup Content -->
+                                    <div class="p-6 pt-10 flex flex-col items-center justify-center h-full text-center">
+                                        <i class="fa-solid fa-chart-line text-5xl text-neonpurple/50 mb-4 transition-transform group-hover/mockup:scale-110 duration-500"></i>
+                                        <h3 class="text-white font-semibold tracking-wide">IRBA Risikogewichte</h3>
+                                        <span class="text-gray-500 font-mono text-xs mt-2">Quarto x Reveal.js</span>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Grid (Governance & Tech) -->
+        <section class="py-16 bg-black/20">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     
@@ -217,7 +269,7 @@
         </div>
     </footer>
 
-    <!-- Interactive script for slight parallax/mouse follow on the grid -->
+    <!-- Interactive script -->
     <script>
         document.addEventListener('mousemove', (e) => {
             const blobs = document.querySelectorAll('.animate-blob');

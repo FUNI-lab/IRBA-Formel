@@ -1,0 +1,92 @@
+---
+title: "IRBA Risikogewichte (Art. 153 CRR)"
+subtitle: "Showcase: Moderne, datengetriebene Präsentationen"
+author: "FUNI-lab"
+output: 
+  slidy_presentation:
+    highlight: pygments
+    font_adjustment: +1
+    footer: "FUNI-lab | Showcase für datengetriebene Workflows"
+    code_folding: hide
+---
+
+## Die regulatorische Grundlage
+
+Das Risikogewicht (RW) für Forderungen an Unternehmen, Institute und Zentralstaaten gemäß **Art. 153 CRR**:
+
+$$
+RW = \left( LGD \cdot N\left( \frac{G(PD) + \sqrt{R} \cdot G(0.999)}{\sqrt{1 - R}} \right) - LGD \cdot PD \right) \cdot \frac{1 + (M - 2.5) \cdot b}{1 - 1.5 \cdot b} \cdot 12.5 \cdot 1.06
+$$
+
+*Die Formel wird nativ über LaTeX gerendert und skaliert verlustfrei auf jedem Beamer.*
+
+---
+
+## Interaktive Tabellen {.scrollable}
+
+Statt statischer Screenshots können wir Daten direkt aus R durchreichen. Hier mit `DT`:
+
+```{r, echo = FALSE}
+#| label: tbl-pd-klassen
+library(DT)
+
+df_rating <- data.frame(
+  Ratingklasse = c("1", "2", "3", "4", "5", "6"),
+  PD = c("0.03%", "0.08%", "0.25%", "0.75%", "2.50%", "8.00%"),
+  Kunden = c(120, 450, 890, 620, 150, 30)
+)
+
+datatable(df_rating, 
+          options = list(pageLength = 4, dom = 't'), 
+          rownames = FALSE,
+          class = 'cell-border stripe')
+```
+
+
+##
+
+```{r, echo = FALSE}
+#| label: fig-rw-curve
+#| out-width: "50%"
+library(echarts4r)
+
+df_curve <- data.frame(
+  PD = seq(0.001, 0.1, length.out = 100)
+)
+# Dummy-Berechnung für den optischen Effekt
+df_curve$RW <- (1 - exp(-50 * df_curve$PD)) * 150 
+
+df_curve |> 
+  # Sichere Höhe von 450px garantiert, dass keine Scrollbalken getriggert werden
+  e_charts(PD, height = "450px") |> 
+  e_line(
+    RW, 
+    name = "Risikogewicht (%)", 
+    smooth = TRUE, 
+    symbol = "none",
+    lineStyle = list(width = 3, color = "#22d3ee"),
+    areaStyle = list(color = "#22d3ee", opacity = 0.15)
+  ) |> 
+  e_tooltip(
+    trigger = "axis",
+    backgroundColor = "rgba(11, 17, 32, 0.9)",
+    borderColor = "#22d3ee",
+    textStyle = list(color = "#fff")
+  ) |> 
+  e_theme("dark") |> 
+  e_x_axis(
+    formatter = e_axis_formatter("percent"),
+    name = "Probability of Default (PD)",
+    nameLocation = "center",
+    nameGap = 30
+  ) |>
+  e_y_axis(
+    name = "RW (%)",
+    nameLocation = "end"
+  ) |>
+  e_grid(containLabel = TRUE, bottom = "15%", top = "10%", left = "5%", right = "5%") |> 
+  e_legend(show = FALSE)
+```
+
+
+
