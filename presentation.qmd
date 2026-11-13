@@ -1,97 +1,157 @@
 ---
-title: "IRBA Risikogewichte (Art. 153 CRR)"
-subtitle: "Showcase: Moderne, datengetriebene Präsentationen"
-author: "FUNI-lab"
+title: "Die IRBA-Formel gem. Art. 153 CRR"
+subtitle: "Kapitalanforderungen für Risikopositionen an Unternehmen"
+author: "Werkstudent:in"
 format: 
   revealjs:
-    theme: night
-    transition: slide
-    slide-number: true
-    chalkboard: true
-    # Globale Scrollbar wurde hier entfernt!
+    theme: default
     embed-resources: true
-execute:
-  echo: false
-  warning: false
+    slide-number: true
+    transition: slide
 ---
 
-## Die regulatorische Grundlage
+## 1. Intro und Überblick
 
-Das Risikogewicht (RW) für Forderungen an Unternehmen, Institute und Zentralstaaten gemäß **Art. 153 CRR**:
+Der **Internal Ratings-Based Approach (IRBA)** erlaubt es Banken, eigene Schätzungen für Risikoparameter zu nutzen, um die Eigenmittelanforderungen zu berechnen.
 
+Für Risikopositionen an Unternehmen (Corporate Exposures) liefert **Art. 153 CRR** die exakte Berechnungsgrundlage.
+
+**Agenda dieser Kurz-Präsentation:**
+
+*   **Die Formel:** Wie setzt sich das Risikogewicht (RW) zusammen?
+*   **Hintergrund:** Welche Rolle spielen die Parameter PD, LGD und M?
+*   **Visuelle Analyse:** Ein 3D-Plot zur Wirkung von PD und LGD auf das Risikogewicht.
+
+
+## 2. Die IRBA-Formel (Art. 153 CRR)
+
+Das Risikogewicht ($RW$) für Corporates berechnet sich nach einer fest definierten aufsichtlichen Funktion:
+
+::: {style="font-size: 75%; overflow-x: auto; overflow-y: hidden;"}
 $$
-RW = \left( LGD \cdot N\left( \frac{G(PD) + \sqrt{R} \cdot G(0.999)}{\sqrt{1 - R}} \right) - LGD \cdot PD \right) \cdot \frac{1 + (M - 2.5) \cdot b}{1 - 1.5 \cdot b} \cdot 12.5 \cdot 1.06
+\begin{align*}
+RW = &\left( LGD \cdot N \left( \frac{G(PD) + \sqrt{R} \cdot G(0.999)}{\sqrt{1-R}} \right) - LGD \cdot PD \right) \\ \\
+     &\cdot \frac{1 + (M - 2.5) \cdot b}{1 - 1.5 \cdot b} \cdot 12.5 \cdot 1.06
+\end{align*}
 $$
+:::
 
-*Die Formel wird nativ über LaTeX gerendert und skaliert verlustfrei auf jedem Beamer.*
+**Die mathematischen Operatoren:**
 
----
+* $N(x)$: Verteilungsfunktion der Standardnormalverteilung
+* $G(z)$: Inverse der Standardnormalverteilung (Quantilsfunktion)
+* $R$: Korrelation (ein von der PD abhängiger Wert)
+* $b$: Laufzeitanpassungsfaktor (abhängig von der PD)
 
-## Interaktive Tabellen {.scrollable}
 
-Statt statischer Screenshots können wir Daten direkt aus R durchreichen. Hier mit `DT`:
+## 3. Die granularen Risikoparameter {.scrollable}
+
+Um das Risikogewicht exakt berechnen und überwachen zu können, sind nicht nur die finalen Ratings entscheidend, sondern die genauen Inputfaktoren. Die drei Kernparameter sind:
+
+*   **PD (Probability of Default):** Die Ausfallwahrscheinlichkeit. Gibt an, wie wahrscheinlich es ist, dass der Schuldner innerhalb des nächsten Jahres ausfällt.
+*   **LGD (Loss Given Default):** Die Verlustquote bei Ausfall. Welcher prozentuale Anteil des ausstehenden Betrags geht im Ausfall tatsächlich verloren? (Maßgeblich durch Sicherheiten beeinflusst).
+*   **M (Maturity):** Die effektive Restlaufzeit in Jahren. Spiegelt das Risiko wider, dass sich die Bonität über die Zeit verschlechtert.
+
+::: {.callout-note}
+**Unerwarteter Verlust (Unexpected Loss):** 
+Der Term $G(0.999)$ stellt sicher, dass das Eigenkapital für extreme Verluste (99,9%-Konfidenz) in Krisenzeiten ausreicht. Der reine Standardrisikokosten-Anteil (Erwarteter Verlust: $PD \cdot LGD$) wird in der Klammer der Formel wieder abgezogen.
+:::
+
+
+## 4. Visuelle Analyse: RW-Sensitivität {.scrollable}
+
+Wie reagiert das Risikogewicht (RW) auf Veränderungen von PD und LGD bei konstanter Laufzeit ($M = 2.5$)?
 
 ```{r}
-#| label: tbl-pd-klassen
-library(DT)
+#| label: irba-3d-plot
+#| echo: true
+#| code-fold: true
+# #| output-location: column
+#| message: false
+#| warning: false
 
-df_rating <- data.frame(
-  Ratingklasse = c("1", "2", "3", "4", "5", "6"),
-  PD = c("0.03%", "0.08%", "0.25%", "0.75%", "2.50%", "8.00%"),
-  Kunden = c(120, 450, 890, 620, 150, 30)
-)
+# Grid für PD (0.1% bis 20%) und LGD (10% bis 100%) definieren
+pd_seq <- seq(0.001, 0.20, length.out = 50)
+lgd_seq <- seq(0.10, 1.00, length.out = 50)
 
-datatable(df_rating, 
-          options = list(pageLength = 4, dom = 't'), 
-          rownames = FALSE,
-          class = 'cell-border stripe')
+# Funktion zur RW-Berechnung gem. Art 153 CRR (vereinfacht für M=2.5)
+calc_rw <- function(pd, lgd) {
+  # Korrelation R
+  r <- 0.12 * (1 - exp(-50 * pd)) / (1 - exp(-50)) + 
+       0.24 * (1 - (1 - exp(-50 * pd)) / (1 - exp(-50)))
+  
+  # Inverse und Verteilungsfunktion der Standardnormalverteilung via stats::
+  term1 <- stats::qnorm(pd) + sqrt(r) * stats::qnorm(0.999)
+  term2 <- term1 / sqrt(1 - r)
+  
+  # RW-Berechnung
+  rw <- (lgd * stats::pnorm(term2) - lgd * pd) * 12.5 * 1.06
+  
+  return(rw * 100) # als Prozentwert
+}
+
+# Matrix für den Plot berechnen
+rw_matrix <- outer(pd_seq, lgd_seq, Vectorize(calc_rw))
+
+# Interaktiven 3D Surface Plot mit expliziten Namespaces und nativer Pipe
+plotly::plot_ly(x = ~lgd_seq, y = ~pd_seq, z = ~rw_matrix, 
+                width = 800, height = 450) |>
+  plotly::add_surface(colorscale = "Viridis") |>
+  plotly::layout(
+    autosize = FALSE,
+    scene = list(
+      xaxis = list(title = 'LGD', tickformat = ".0%"),
+      yaxis = list(title = 'PD', tickformat = ".1%"),
+      zaxis = list(title = 'RW in %')
+    )
+  )
 ```
 
+## 5. Portfolio-Übersicht (Simulierte Daten) 
 
-##
+::: {style="font-size: 80%;"}
+Eine interaktive Übersicht der Corporate-Positionen inklusive der zugehörigen Risikoparameter. Über die Spaltenköpfe kann gezielt gefiltert werden.
+:::
 
+
+::: {style="font-size: 35%; max-width: 100%; overflow-x: auto;"}
 ```{r}
-#| label: fig-rw-curve
-#| out-width: "50%"
-library(echarts4r)
+#| label: datatable-portfolio
+#| echo: true
+#| code-fold: true
+# #| output-location: column
+#| message: false
+#| warning: false
 
-df_curve <- data.frame(
-  PD = seq(0.001, 0.1, length.out = 100)
+# Reproduzierbares, simuliertes Corporate-Portfolio generieren (500 Zeilen)
+set.seed(42)
+portfolio <- base::data.frame(
+  Kunde = base::paste0("Corp_", 1:500),
+  Rating = base::sample(c("AAA", "AA", "A", "BBB", "BB", "B", "CCC"), 500, replace = TRUE),
+  EAD = base::round(stats::runif(500, 100000, 5000000), 2),
+  PD = base::round(stats::runif(500, 0.001, 0.15), 4),
+  LGD = base::round(stats::runif(500, 0.10, 0.90), 2)
 )
-# Dummy-Berechnung für den optischen Effekt
-df_curve$RW <- (1 - exp(-50 * df_curve$PD)) * 150 
 
-df_curve |> 
-  # Sichere Höhe von 450px garantiert, dass keine Scrollbalken getriggert werden
-  e_charts(PD, height = "450px") |> 
-  e_line(
-    RW, 
-    name = "Risikogewicht (%)", 
-    smooth = TRUE, 
-    symbol = "none",
-    lineStyle = list(width = 3, color = "#22d3ee"),
-    areaStyle = list(color = "#22d3ee", opacity = 0.15)
-  ) |> 
-  e_tooltip(
-    trigger = "axis",
-    backgroundColor = "rgba(11, 17, 32, 0.9)",
-    borderColor = "#22d3ee",
-    textStyle = list(color = "#fff")
-  ) |> 
-  e_theme("dark") |> 
-  e_x_axis(
-    formatter = e_axis_formatter("percent"),
-    name = "Probability of Default (PD)",
-    nameLocation = "center",
-    nameGap = 30
-  ) |>
-  e_y_axis(
-    name = "RW (%)",
-    nameLocation = "end"
-  ) |>
-  e_grid(containLabel = TRUE, bottom = "15%", top = "10%", left = "5%", right = "5%") |> 
-  e_legend(show = FALSE)
+# Interaktive Datentabelle mit Export-Buttons und Filtern
+DT::datatable(
+  portfolio,
+  #width = "850px",                 # <-- Breite festnageln
+  #height = "400px",                # <-- Höhe festnageln
+  filter = "top",                  # Suchfelder über jeder Spalte
+  rownames = FALSE,                # Zeilennummern ausblenden
+  extensions = c("Buttons"),       # Zusatzfunktionen laden
+  options = base::list(
+    dom = "Bfrtlip",                # Layout-Kontrolle (B = Buttons)
+    buttons = base::c("copy", "csv", "excel"), # Export-Optionen
+    pageLength = 10,                # Zeilen pro Seite (angepasst an Folienhöhe)
+    scrollX = TRUE, # <-- Erzwingt einen eigenen horizontalen Scrollbalken IN der Tabelle
+    scrollY = "300px", 
+    scrollCollapse = TRUE,
+    autoWidth = FALSE
+  )
+) |>
+  DT::formatCurrency("EAD", currency = "€ ", mark = ".", dec.mark = ",") |>
+  DT::formatPercentage(base::c("PD", "LGD"), digits = 2)
 ```
-
-
-
+:::
