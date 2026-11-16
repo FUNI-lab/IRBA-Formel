@@ -1,7 +1,8 @@
 ---
 title: "Die IRBA-Formel gem. Art. 153 CRR"
-subtitle: "Kapitalanforderungen für Risikopositionen an Unternehmen"
-author: "Werkstudent:in"
+subtitle: "Kapitalanforderungen für Risikopositionen"
+author: "Lara Daub"
+date: "`r Sys.Date()`"
 format: 
   revealjs:
     theme: default
@@ -18,9 +19,14 @@ Für Risikopositionen an Unternehmen (Corporate Exposures) liefert **Art. 153 CR
 
 **Agenda dieser Kurz-Präsentation:**
 
-*   **Die Formel:** Wie setzt sich das Risikogewicht (RW) zusammen?
-*   **Hintergrund:** Welche Rolle spielen die Parameter PD, LGD und M?
-*   **Visuelle Analyse:** Ein 3D-Plot zur Wirkung von PD und LGD auf das Risikogewicht.
+- **Die Formel:** Wie setzt sich das Risikogewicht (RW) zusammen?
+- **Hintergrund:** Welche Rolle spielen die Parameter PD, LGD und M?
+- **Visuelle Analyse:** Ein 3D-Plot zur Wirkung von PD und LGD auf das Risikogewicht.
+- **Simuliertes Portfolio** 
+- **Auswertung des Beispielportfolios**
+- **Relative Sensitivität PD/ LGD**
+- **Vorteilhaftigkeit des IRBA** Erste Überlegungen
+- **Ausblick**
 
 
 ## 2. Die IRBA-Formel (Art. 153 CRR)
@@ -116,36 +122,55 @@ Eine interaktive Übersicht der Corporate-Positionen inklusive der zugehörigen 
 
 ::: {style="font-size: 35%; max-width: 100%; overflow-x: auto;"}
 ```{r}
+
 #| label: datatable-portfolio
 #| echo: true
 #| code-fold: true
-# #| output-location: column
 #| message: false
 #| warning: false
 
-# Reproduzierbares, simuliertes Corporate-Portfolio generieren (500 Zeilen)
-set.seed(42)
+# Reproduzierbares, realistisches Corporate-Portfolio generieren (500 Zeilen)
+base::set.seed(42)
+
+# Realistische Ratingverteilung (inkl. "Unrated" als typischer Mittelstands-Fall im KSA)
+rating_klassen <- base::c("AAA", "AA", "A", "BBB", "BB", "B", "CCC", "Unrated")
+rating_probs   <- base::c(0.02,  0.05, 0.15, 0.25, 0.20, 0.08, 0.02, 0.23)
+
+ratings_sim <- base::sample(rating_klassen, size = 500, replace = TRUE, prob = rating_probs)
+
+# Konsistente PD-Spannen je Ratingklasse hinterlegen
+pd_sim <- base::sapply(ratings_sim, function(r) {
+  switch(r,
+    "AAA"     = stats::runif(1, 0.0003, 0.0005),
+    "AA"      = stats::runif(1, 0.0005, 0.0015),
+    "A"       = stats::runif(1, 0.0015, 0.0040),
+    "BBB"     = stats::runif(1, 0.0040, 0.0120),
+    "BB"      = stats::runif(1, 0.0120, 0.0300),
+    "B"       = stats::runif(1, 0.0300, 0.0700),
+    "CCC"     = stats::runif(1, 0.0700, 0.1500),
+    "Unrated" = stats::runif(1, 0.0030, 0.0200) # Solider Mittelstand ohne externes Rating
+  )
+})
+
 portfolio <- base::data.frame(
-  Kunde = base::paste0("Corp_", 1:500),
-  Rating = base::sample(c("AAA", "AA", "A", "BBB", "BB", "B", "CCC"), 500, replace = TRUE),
-  EAD = base::round(stats::runif(500, 100000, 5000000), 2),
-  PD = base::round(stats::runif(500, 0.001, 0.15), 4),
-  LGD = base::round(stats::runif(500, 0.10, 0.90), 2)
+  Kunde  = base::paste0("Corp_", 1:500),
+  Rating = ratings_sim,
+  EAD    = base::round(stats::runif(500, 100000, 5000000), 2),
+  PD     = base::round(pd_sim, 4),
+  LGD    = base::round(stats::runif(500, 0.15, 0.45), 2) # Besicherte & Senior Unsecured (45% F-IRBA)
 )
 
 # Interaktive Datentabelle mit Export-Buttons und Filtern
 DT::datatable(
   portfolio,
-  #width = "850px",                 # <-- Breite festnageln
-  #height = "400px",                # <-- Höhe festnageln
-  filter = "top",                  # Suchfelder über jeder Spalte
-  rownames = FALSE,                # Zeilennummern ausblenden
-  extensions = c("Buttons"),       # Zusatzfunktionen laden
+  filter = "top",
+  rownames = FALSE,
+  extensions = base::c("Buttons"),
   options = base::list(
-    dom = "Bfrtlip",                # Layout-Kontrolle (B = Buttons)
-    buttons = base::c("copy", "csv", "excel"), # Export-Optionen
-    pageLength = 10,                # Zeilen pro Seite (angepasst an Folienhöhe)
-    scrollX = TRUE, # <-- Erzwingt einen eigenen horizontalen Scrollbalken IN der Tabelle
+    dom = "Bfrtlip",
+    buttons = base::c("copy", "csv", "excel"),
+    pageLength = 10,
+    scrollX = TRUE,
     scrollY = "300px", 
     scrollCollapse = TRUE,
     autoWidth = FALSE
@@ -153,5 +178,180 @@ DT::datatable(
 ) |>
   DT::formatCurrency("EAD", currency = "€ ", mark = ".", dec.mark = ",") |>
   DT::formatPercentage(base::c("PD", "LGD"), digits = 2)
+
+
 ```
 :::
+
+
+## 6. Auswertung Portfolio-Daten
+
+Aus diesen Corporate-Positionen ergeben sich nun mittels IRBA und KSA folgende Werte für RWA und Eigenmittelunterlegung:
+
+
+```{r}
+
+#| label: auswertung-portfolio
+#| echo: true
+#| code-fold: true
+#| message: false
+#| warning: false
+
+RWs <- base::mapply(
+  calc_rw,
+  portfolio$PD,
+  portfolio$LGD
+)
+
+RWA_IRBA <- base::sum(RWs * portfolio$EAD) / 100
+
+# KSA-Risikogewichte gem. Art. 122 CRR (inkl. 100% für ungeratete Unternehmen)
+rating_betraege <- base::c(
+  "AAA"     = 0.20,
+  "AA"      = 0.20,
+  "A"       = 0.50,
+  "BBB"     = 0.75,
+  "BB"      = 1.00,
+  "B"       = 1.50,
+  "CCC"     = 1.50,
+  "Unrated" = 1.00
+)
+
+RWA_KSA <- base::sum(
+  rating_betraege[portfolio$Rating] * portfolio$EAD
+)
+
+Ergebnisse <- base::data.frame(
+  Verfahren = base::c("KSA", "IRBA"),
+  RWA = base::c(RWA_KSA, RWA_IRBA),
+  Eigenmittelunterlegung = base::c(
+    RWA_KSA * 0.08,
+    RWA_IRBA * 0.08
+  )
+)
+
+# Zahlen für die Anzeige formatieren
+Ergebnisse_Anzeige <- Ergebnisse |>
+  dplyr::mutate(
+    RWA = scales::number(RWA, accuracy = 0.01, big.mark = ".", decimal.mark = ","),
+    Eigenmittelunterlegung = scales::number(Eigenmittelunterlegung, accuracy = 0.01, big.mark = ".", decimal.mark = ",")
+  )
+
+# Tabelle ausgeben
+knitr::kable(
+  Ergebnisse_Anzeige,
+  col.names = base::c(
+    "Verfahren",
+    "RWA (in €)",
+    "Eigenmittelunterlegung (in €)"
+  ),
+  caption = "Vergleich KSA und IRBA",
+  align = base::c("l", "r", "r")
+)
+
+```
+
+
+## 7. relative Sensitivität von PD und LGD
+
+LGD: als einfacher Faktor der RW-Funktion ist die relative Sensitivität gegenüber der LGD konstant 1
+
+$$
+S_{LGD}
+=
+\frac{\partial RW}{\partial LGD}
+\cdot
+\frac{LGD}{RW}
+= 1
+$$
+PD: nicht-linearer Einfluss auf die Risikogewichte
+$$S_{PD} =
+\frac{\partial RW}{\partial PD}
+\cdot
+\frac{PD}{RW}
+$$
+
+```{r}
+# Relative Sensitivität von PD
+rel_sens_pd <- function(pd, lgd, h = 1e-6) {
+
+  # Numerische partielle Ableitung
+  ableitung <- (
+    calc_rw(pd + h, lgd) -
+    calc_rw(pd - h, lgd)
+  ) / (2 * h)
+
+  # Relative Sensitivität
+  return(ableitung * pd / calc_rw(pd, lgd))
+}
+
+# PD-Werte definieren
+PD_werte <- seq(0.0001, 0.20, length.out = 1000)
+
+# LGD konstant halten
+lgd <- 0.70
+
+# Relative Sensitivität berechnen
+sens_pd <- sapply(
+  PD_werte,
+  function(pd) rel_sens_pd(pd, lgd)
+)
+plot(PD_werte,sens_pd,type = "l",lwd = 2,main = "Relative Sensitivität von PD",
+  xlab = "PD",
+  ylab = "Relative Sensitivität"
+)
+
+grid()
+```
+
+## 8. IRBA vs. KSA - Szenarien einer relativen Vorteilhaftigkeit
+
+Erste Überlegung:
+
+RW im KSA zwischen 20% und 150% begrenzt
+
+Mit welchen PD und LGD liegt der IRBA darüber bzw. darunter?
+  
+```{r}
+lgd_werte <- lgd_seq
+pd_werte <- pd_seq
+
+plotly::plot_ly(x = ~lgd_seq, y = ~pd_seq, z = ~rw_matrix, 
+                width = 800, height = 450) |>
+  plotly::add_surface(colorscale = "Viridis") |>
+  plotly::add_surface(
+    y = pd_werte,
+    x = lgd_werte,
+    z = matrix(20, nrow = length(lgd_werte),
+               ncol = length(pd_werte)),
+    opacity = 0.5,
+    colorscale = list(c(0, "orange"), c(1, "orange")),
+    showscale = FALSE,
+    name = "RW = 1,5")|>
+  plotly::add_surface(
+    y = pd_werte,
+    x = lgd_werte,
+    z = matrix(150, nrow = length(lgd_werte),
+               ncol = length(pd_werte)),
+    opacity = 0.5,
+    colorscale = list(c(0, "green"), c(1, "green")),
+    showscale = FALSE,
+    name = "RW = 1,5")|>
+  plotly::layout(
+    autosize = FALSE,
+    scene = list(
+      xaxis = list(title = 'LGD', tickformat = ".0%"),
+      yaxis = list(title = 'PD', tickformat = ".1%"),
+      zaxis = list(title = 'RW in %')
+    )
+  )
+
+```
+
+
+## 9. Ausblick und weiterführende Fragestellungen
+
+- regulatorische Restriktionen: Einfluss von Input- und Outputfloor auf den IRBA-Vorteil
+- Einfluss der Bonitätsstruktur: Auswirkung unterschiedlicher Ratingverteilungen im Unternehmensportfolio auf die RWA
+- Wirtschaftlche Perspektive: Gegenüberstellung der möglichen Eigenkapitalersparnis und des zusätzlichen Aufwands für die IRBA Anwendung
+
